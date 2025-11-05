@@ -62,8 +62,6 @@ return {
     "neovim/nvim-lspconfig",
   },
   config = function()
-    require("Arduino-Nvim.lsp").setup()
-
     vim.api.nvim_create_autocmd("FileType", {
       pattern = "arduino",
       callback = function()
