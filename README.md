@@ -213,8 +213,8 @@ MIT License - Do whatever you want with the code. No attribution required.
 
 <!-- References -->
 
-- [acli]: https://arduino.github.io/arduino-cli
-- [als]: https://github.com/arduino/arduino-language-server
-- [clangd]: https://clangd.llvm.org/
-- [telescope]: https://github.com/nvim-telescope/telescope.nvim
-- [nvim-lspconfig]: https://github.com/neovim/nvim-lspconfig
+[acli]: https://arduino.github.io/arduino-cli
+[als]: https://github.com/arduino/arduino-language-server
+[clangd]: https://clangd.llvm.org/
+[telescope]: https://github.com/nvim-telescope/telescope.nvim
+[nvim-lspconfig]: https://github.com/neovim/nvim-lspconfig
