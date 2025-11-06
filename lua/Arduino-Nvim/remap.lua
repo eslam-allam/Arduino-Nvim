@@ -6,6 +6,7 @@ vim.keymap.set("n", "<Leader>am", ":InoMonitor<CR>", { silent = true })     -- O
 vim.keymap.set("n", "<Leader>al", ":InoLib<CR>", { silent = true })
 vim.keymap.set("n", "<Leader>ab", ":InoSelectBoard<CR>", { silent = true })     -- open board selection gui
 vim.keymap.set("n", "<Leader>ap", ":InoSelectPort<CR>", { silent = true }) -- open board selection gui
+vim.keymap.set("n", "<Leader>ar", ":InoUploadReset<CR>", { silent = true }) -- Upload with manual reset for UNO R4 WiFi
 
 
 vim.keymap.set("n", "<Esc>", function()

@@ -1,100 +1,206 @@
 # Arduino-Nvim
 
-A Neovim plugin that provides Arduino IDE-like functionality directly in your editor. This plugin integrates Arduino development tools with Neovim, offering a seamless development experience for Arduino projects.
+A Neovim plugin that provides Arduino IDE-like functionality directly in your editor.
+This plugin integrates Arduino development tools with Neovim, offering a seamless
+development experience for Arduino projects.
 
-## Features
+## ✨ Features
 
-- Arduino project compilation and verification
-- Code upload to Arduino boards
-- Serial monitor with writeable interface
-- Board and port management with GUI selection
-- Advanced library management with Telescope integration
+- **Arduino project compilation and verification**
+- **Code upload to Arduino boards** with reset support for UNO R4 WiFi
+- **Serial monitor** with configuration display and clean interface
+- **Board and port management** with GUI selection
+- **Advanced library management** with Telescope integration
   - Visual indicators for installed libraries (✅)
   - Update detection and management (🔄)
   - Cached library data for faster loading
-- LSP support for Arduino development
-- Real-time status monitoring
-- Persistent configuration storage
+- **LSP support** for Arduino development
+- **Real-time status monitoring**
+- **Persistent configuration storage**
+- **Debug upload functionality** for troubleshooting
 
-## Requirements
+## 📋 Requirements
 
-- [arduino-cli](https://arduino.github.io/arduino-cli/) (latest stable version)
-- [arduino-language-server](https://github.com/arduino/arduino-language-server) (patched version required - see [Patch](https://github.com/arduino/arduino-language-server/issues/187#issuecomment-2241641098))
-- [clangd](https://clangd.llvm.org/) (latest stable version)
-- [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
-- [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)
+- [arduino-cli][acli] (latest stable version)
+- [arduino-language-server][als]
+- [clangd][clangd] (latest stable version)
+- [telescope.nvim][telescope]
+- [nvim-lspconfig][nvim-lspconfig]
 
-## Installation
+## 🚀 Installation (LazyVim)
 
-1. Clone the repository:
-```sh
-git clone https://github.com/yuukiflow/Arduino-Nvim.git ~/.config/nvim/lua/Arduino-Nvim
-```
+Add this to your `lua/plugins/arduino.lua`:
 
-2. Add the following to your `init.lua`:
 ```lua
--- Load LSP configuration first
-require("Arduino-Nvim.lsp").setup()
-
--- Set up Arduino file type detection
-vim.api.nvim_create_autocmd("FileType", {
-    pattern = "arduino",
-    callback = function()
+return {
+  "yuukiflow/Arduino-Nvim",
+  dependencies = {
+    "nvim-telescope/telescope.nvim",
+    "neovim/nvim-lspconfig",
+  },
+  config = function()
+    -- Load Arduino plugin for .ino files
+    vim.api.nvim_create_autocmd("FileType", {
+      pattern = "arduino",
+      callback = function()
         require("Arduino-Nvim")
-    end
-})
+      end,
+    })
+  end,
+}
 ```
 
-## Usage
+### Local Development Setup
 
-All commands are prefixed with `<Leader>a` followed by a single letter indicating the action:
+If you're developing locally:
+
+```lua
+return {
+  dir = vim.fn.stdpath("config") .. "/lua/Arduino-Nvim",
+  dependencies = {
+    "nvim-telescope/telescope.nvim",
+    "neovim/nvim-lspconfig",
+  },
+  config = function()
+    vim.api.nvim_create_autocmd("FileType", {
+      pattern = "arduino",
+      callback = function()
+        require("Arduino-Nvim")
+      end,
+    })
+  end,
+}
+```
+
+## 🎮 Keymaps
+
+All commands are prefixed with `<Leader>a` followed by a single letter:
+
+| Keymap | Command | Description |
+|--------|---------|-------------|
+| `<Leader>ac` | `:InoCheck` | Compile and verify current sketch |
+| `<Leader>au` | `:InoUpload` | Upload sketch to board |
+| `<Leader>ar` | `:InoUploadReset` | Upload with manual reset (for UNO R4 WiFi) |
+| `<Leader>am` | `:InoMonitor` | Open serial monitor with configuration display |
+| `<Leader>as` | `:InoStatus` | Display current board, port, and FQBN status |
+| `<Leader>al` | `:InoLib` | Open library manager (Telescope interface) |
+| `<Leader>ag` | `:InoGUI` | Open GUI for setting board and port |
+| `<Leader>ap` | `:InoSelectPort` | Select Arduino port from available ports |
+| `<Leader>ab` | `:InoSelectBoard` | Select Arduino board from available boards |
+
+## 🔧 Additional Commands
 
 | Command | Description |
 |---------|-------------|
-| `<Leader>ac` | Compile and verify the current sketch |
-| `<Leader>au` | Upload sketch to board (configures port and FQBN) |
-| `<Leader>am` | Open serial monitor in a floating terminal |
-| `<Leader>as` | Display current board, port, and FQBN status |
-| `<Leader>al` | Open library manager (Telescope interface) |
-| `<Leader>ag` | Open GUI for setting board and port |
-| `<Leader>ap` | List available ports |
-| `<Leader>ab` | List available boards |
+| `:InoDebugUpload` | Debug upload process with detailed information |
+| `:InoList` | List all available Arduino ports |
+| `:InoSetBaud <rate>` | Set serial monitor baudrate (e.g. `:InoSetBaud 9600`) |
 
-### Configuration
+## ⚙️ Configuration
 
-The plugin automatically creates and manages a `.arduino_config.lua` file in your project directory to store:
+The plugin automatically creates and manages a `.arduino_config.lua` file in your
+project directory to store:
+
 - Board type (FQBN)
-- Port selection
+- Port selection  
 - Baudrate settings
 
-### Serial Monitor Configuration
+### Example Configuration File
 
-Set the baudrate for the serial monitor using:
+```lua
+return {
+  board = "arduino:renesas_uno:unor4wifi",
+  port = "/dev/ttyACM0", 
+  baudrate = "9600",
+}
 ```
-:InoSetBaudrate 115200
-```
-Default baudrate is 115200 if not specified.
+
+### Serial Monitor
+
+The serial monitor shows:
+
+- Board configuration details
+- Port settings (baudrate, bits, parity, etc.)
+- Real-time Arduino output
+- Clean exit with `Ctrl-C` or `Esc`
+
+### Upload Troubleshooting
+
+For Arduino UNO R4 WiFi upload issues:
+
+1. **Try reset upload**: `<Leader>ar` or `:InoUploadReset`
+2. **Debug upload**: `:InoDebugUpload` for detailed information
+3. **Manual reset**: Hold reset button 8-10 seconds, then immediately upload
+4. **Check connection**: Ensure USB cable is properly connected
+5. Use a good quality USB cable, cheap cables gave me problems
 
 ### Library Manager
 
-The library manager provides a Telescope interface with the following features:
-- Visual indicators for installed libraries (✅)
-- Update detection for outdated libraries (🔄)
+The library manager provides a Telescope interface with:
+
+- ✅ Visual indicators for installed libraries
+- 🔄 Update detection for outdated libraries  
 - One-click installation and updates
 - Cached library data for improved performance
 - Search and filter capabilities
 
-## Contributing
+## 🛠️ LSP Setup
+
+The plugin includes LSP configuration for Arduino development:
+
+- **Syntax highlighting** and **code completion**
+- **Error checking** and **diagnostics**
+- **Function signatures** and **documentation**
+- **Go to definition** support
+
+## 📁 Project Structure
+
+```sh
+sketch/
+├── sketch.ino              # Main Arduino sketch
+├── .arduino_config.lua      # Plugin configuration (auto-generated)
+└── .arduino/               # Arduino CLI build artifacts
+    └── sketches/
+        └── sketch.ino.bin   # Compiled binary
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **"No device found on ttyACM0"**
+   - Try `<Leader>ar` for reset-based upload
+   - Check USB connection
+   - Verify board selection with `<Leader>ag`
+
+2. **Monitor connection issues**
+   - Check baudrate setting with `<Leader>as`
+   - Ensure correct port selection
+   - Try `:InoDebugUpload` for diagnostics
+
+3. **LSP not working**
+   - Ensure `arduino-language-server` is installed
+   - Check `clangd` is in PATH
+   - Restart Neovim after installation
+
+### Debug Commands
+
+- `:InoDebugUpload` - Show detailed upload process
+- `:InoList` - List all available ports
+- `:InoStatus` - Show current configuration
+
+## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
+## 📄 License
 
-This project is completely free and open source. You can do whatever you want with the code:
-- Use it for any purpose
-- Modify it however you want
-- Share it with anyone
-- Use it commercially
-- Use it privately
+MIT License - Do whatever you want with the code. No attribution required.
 
-No attribution or license text is required. Feel free to use this code in any way that helps you.
+<!-- References -->
+
+[acli]: https://arduino.github.io/arduino-cli
+[als]: https://github.com/arduino/arduino-language-server
+[clangd]: https://clangd.llvm.org/
+[telescope]: https://github.com/nvim-telescope/telescope.nvim
+[nvim-lspconfig]: https://github.com/neovim/nvim-lspconfig
