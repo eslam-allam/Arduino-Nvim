@@ -411,7 +411,7 @@ function M.select_port_gui()
 	-- Extract port names from the arduino-cli output
 	local ports = {}
 	for line in result:gmatch("[^\r\n]+") do
-		if line:match("^/dev/tty") or line:match("^COM") then -- Matches Linux/macOS and Windows COM port formats
+		if line:match("^/dev/tty") or line:match("^/dev/cu") or line:match("^COM") then -- Matches Linux/macOS and Windows COM port formats
 			table.insert(ports, line:match("^(%S+)")) -- Capture the port name only
 		end
 	end
