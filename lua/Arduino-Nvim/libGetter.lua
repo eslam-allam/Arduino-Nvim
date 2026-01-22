@@ -1,3 +1,5 @@
+local pickerLib = require("Arduino-Nvim.picker")
+local config = require("Arduino-Nvim.config")
 -- Use vim.json directly (available in Neovim 0.9+)
 -- This eliminates the need for custom JSON implementation
 local json = vim.json
@@ -168,7 +170,7 @@ function M.library_manager()
 
 		-- Custom entry maker function to include only name and tag in `ordinal`
 		local function entry_maker(entry)
-			if entry and entry.display_name and entry.lib_name then
+			if entry  and entry.display_name and entry.lib_name then
 				return {
 					value = entry.display_name,
 					display = entry.display_name, -- Show name with markers
@@ -176,27 +178,22 @@ function M.library_manager()
 					lib_name = entry.lib_name, -- Store actual library name
 				}
 			else
-				vim.notify("Error: entry or entry.display_name or entry.lib_name is nil", vim.log.levels.ERROR)
+				vim.notify("Error: entry or entry.display_name or entry.lib_name is nil: " .. vim.inspect(entry), vim.log.levels.ERROR)
 				return nil
 			end
 		end
 
-		require("telescope.pickers")
-			.new({}, {
+		pickerLib
+			.pick(config.opts.picker, {
 				prompt_title = "Available Arduino Libraries",
-				finder = require("telescope.finders").new_table({
+				finder = {
 					results = library_names,
 					entry_maker = entry_maker,
-				}),
+				},
 				sorter = require("telescope.config").values.generic_sorter({}),
-				attach_mappings = function(prompt_bufnr, map)
-					local actions = require("telescope.actions")
-					local action_state = require("telescope.actions.state")
-
-					map("i", "<CR>", function()
-						local selection = action_state.get_selected_entry()
-						if selection then
-							local lib_name = selection.lib_name -- Use the actual library name
+				on_confirm = function(actions, item)
+						if item then
+							local lib_name = item.lib_name -- Use the actual library name
 							local cmd
 
 							if outdated_libs[lib_name] then
@@ -212,15 +209,12 @@ function M.library_manager()
 							end
 
 							-- Refresh the picker with updated tick mark and update status
-							actions.close(prompt_bufnr)
+							actions.close()
 							update_library_picker() -- Reopen picker with updated status
 						end
-						return true
-					end)
 					return true
 				end,
 			})
-			:find()
 	else
 		vim.notify("No libraries found.", vim.log.levels.WARN)
 	end

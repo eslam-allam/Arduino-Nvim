@@ -1,8 +1,13 @@
-local M = {}
+local M = {
+}
+
 
 -- Load dependencies
 require("Arduino-Nvim.remap")
 require("Arduino-Nvim.libGetter")
+
+local config = require("Arduino-Nvim.config")
+local picker = require("Arduino-Nvim.picker")
 
 -- Default settings
 M.board = "arduino:avr:uno"
@@ -12,6 +17,11 @@ local config_file = ".arduino_config.lua"
 
 function Trim(s)
 	return s:match("^%s*(.-)%s*$")
+end
+
+---@param opts Arduino-Nvim.opts
+function M.setup(opts)
+  config.setup(opts)
 end
 
 function M.status()
@@ -356,41 +366,29 @@ function M.select_board_gui(callback)
 		return
 	end
 
-	require("telescope.pickers")
-		.new({}, {
-			prompt_title = "Select Arduino Board",
-			finder = require("telescope.finders").new_table({
-				results = boards,
-				entry_maker = function(entry)
-					return {
-						value = entry.fqbn,
-						display = entry.display,
-						ordinal = entry.ordinal,
-					}
-				end,
-			}),
-			sorter = require("telescope.config").values.generic_sorter({}),
-			attach_mappings = function(prompt_bufnr, map)
-				local actions = require("telescope.actions")
-				local action_state = require("telescope.actions.state")
-
-				local function on_select()
-					local selection = action_state.get_selected_entry()
-					if selection then
-						M.set_board(selection.value) -- Use the selected FQBN
-						actions.close(prompt_bufnr)
-						if callback then
-							callback()
-						end
-					end
-				end
-
-				map("i", "<CR>", on_select)
-				map("n", "<CR>", on_select)
-				return true
+	picker.pick(config.opts.picker, {
+		prompt_title = "Select Arduino Board",
+		finder = {
+			results = boards,
+			entry_maker = function(entry)
+				return {
+					value = entry.fqbn,
+					display = entry.display,
+					ordinal = entry.ordinal,
+				}
 			end,
-		})
-		:find()
+		},
+		sorter = require("telescope.config").values.generic_sorter({}),
+		on_confirm = function(actions, item)
+			if item then
+				M.set_board(item.value) -- Use the selected FQBN
+				actions.close()
+				if callback then
+					callback()
+				end
+			end
+		end,
+	})
 end
 
 function M.select_port_gui()
@@ -423,23 +421,17 @@ function M.select_port_gui()
 	end
 
 	-- Use Telescope to display the list of available ports
-	require("telescope.pickers")
-		.new({}, {
-			prompt_title = "Select Arduino Port",
-			finder = require("telescope.finders").new_table({ results = ports }),
-			sorter = require("telescope.config").values.generic_sorter({}),
-			attach_mappings = function(prompt_bufnr, map)
-				map("i", "<CR>", function()
-					local selection = require("telescope.actions.state").get_selected_entry()
-					if selection then
-						M.set_com(selection[1])
-					end
-					require("telescope.actions").close(prompt_bufnr)
-				end)
-				return true
-			end,
-		})
-		:find()
+	picker.pick(config.opts.picker, {
+		prompt_title = "Select Arduino Port",
+		finder = { results = ports },
+		sorter = require("telescope.config").values.generic_sorter({}),
+		on_confirm = function(actions, item)
+			if item then
+				M.set_com(item.text)
+			end
+			actions.close()
+		end,
+	})
 end
 
 function M.InoList()
