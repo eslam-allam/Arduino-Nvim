@@ -206,6 +206,10 @@ function M.library_manager()
 								cmd = 'arduino-cli lib install "' .. lib_name .. '" > /dev/null 2>&1'
 								os.execute(cmd)
 								vim.notify("Library '" .. lib_name .. "' updated successfully.", vim.log.levels.INFO)
+              elseif installed_libs[lib_name] then
+                cmd = 'arduino-cli lib uninstall "' .. lib_name .. '" > /dev/null 2>&1'
+                os.execute(cmd)
+                vim.notify("Library '" .. lib_name .. "' uninstalled successfully.", vim.log.levels.INFO)
 							else
 								-- Install the library if it's not installed
 								cmd = 'arduino-cli lib install "' .. lib_name .. '" > /dev/null 2>&1'
