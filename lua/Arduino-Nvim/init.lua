@@ -1,6 +1,4 @@
-local M = {
-}
-
+local M = {}
 
 -- Load dependencies
 require("Arduino-Nvim.remap")
@@ -21,7 +19,7 @@ end
 
 ---@param opts Arduino-Nvim.opts
 function M.setup(opts)
-  config.setup(opts)
+	config.setup(opts)
 end
 
 function M.status()

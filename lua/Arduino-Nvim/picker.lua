@@ -26,7 +26,11 @@ local function tosnacks(opts)
 	if opts.finder.entry_maker ~= nil or type(items[1]) == "table" then
 		items = vim.tbl_map(function(entry)
 			local result = opts.finder.entry_maker(entry)
-			return vim.tbl_deep_extend("keep", { text = result.ordinal ~= nil and result.ordinal or result.value }, result)
+			return vim.tbl_deep_extend(
+				"keep",
+				{ text = result.ordinal ~= nil and result.ordinal or result.value },
+				result
+			)
 		end, opts.finder.results)
 	else
 		items = vim.tbl_map(function(item)
@@ -38,19 +42,21 @@ local function tosnacks(opts)
 	local transformed = {
 		title = opts.prompt_title,
 		items = items,
-    format = function (item, _)
-      return {
-        {item.display ~= nil and item.display or item.text, "SnacksNormal"}
-      }
-    end,
-    matcher = {
-      alt = true
-    },
+		format = function(item, _)
+			return {
+				{ item.display ~= nil and item.display or item.text, "SnacksNormal" },
+			}
+		end,
+		matcher = {
+			alt = true,
+		},
 		preview = "none",
-    layout = "select",
+		layout = "select",
 		confirm = function(picker, item)
 			local actions = {
-				close = function() picker:close() end,
+				close = function()
+					picker:close()
+				end,
 			}
 			opts.on_confirm(
 				actions,
@@ -70,8 +76,8 @@ end
 ---@param opts Arduino-Nvim.Picker.opts
 ---@return table
 local function totelescope(opts)
-  local attach_mappings = opts.attach_mappings
-  local transformed = vim.deepcopy(opts)
+	local attach_mappings = opts.attach_mappings
+	local transformed = vim.deepcopy(opts)
 	transformed.finder = require("telescope.finders").new_table(opts.finder)
 	transformed.attach_mappings = function(prompt_bufnr, map)
 		local actions = require("telescope.actions")

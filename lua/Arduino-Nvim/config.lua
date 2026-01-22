@@ -8,7 +8,6 @@ local M = {
 	opts = { picker = "telescope" },
 }
 
-
 ---@param opts Arduino-Nvim.opts
 function M.setup(opts)
 	M.opts = vim.tbl_deep_extend("force", M.opts, opts or {})

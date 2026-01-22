@@ -108,16 +108,16 @@ local function get_libraries_with_updates()
 	local ok, outdated_data = pcall(json.decode, result)
 	local outdated_libs = {}
 
-  if not ok or not outdated_data then
-    vim.notify("Failed to fetch outdated libraries. ", vim.log.levels.ERROR)
-    return outdated_libs
-  end
+	if not ok or not outdated_data then
+		vim.notify("Failed to fetch outdated libraries. ", vim.log.levels.ERROR)
+		return outdated_libs
+	end
 
-  if not outdated_data.libraries then
-    return outdated_libs
-  end
+	if not outdated_data.libraries then
+		return outdated_libs
+	end
 
-  for _, lib_entry in ipairs(outdated_data.libraries) do
+	for _, lib_entry in ipairs(outdated_data.libraries) do
 		local lib_info = lib_entry.library
 		local lib_name = lib_info and lib_info.name
 		local latest_version = lib_entry.release and lib_entry.release.version
@@ -127,7 +127,7 @@ local function get_libraries_with_updates()
 		else
 			vim.notify("Warning: Missing lib_name or latest_version for entry", vim.log.levels.WARN)
 		end
-  end
+	end
 
 	return outdated_libs
 end
@@ -175,7 +175,7 @@ function M.library_manager()
 
 		-- Custom entry maker function to include only name and tag in `ordinal`
 		local function entry_maker(entry)
-			if entry  and entry.display_name and entry.lib_name then
+			if entry and entry.display_name and entry.lib_name then
 				return {
 					value = entry.display_name,
 					display = entry.display_name, -- Show name with markers
@@ -183,47 +183,49 @@ function M.library_manager()
 					lib_name = entry.lib_name, -- Store actual library name
 				}
 			else
-				vim.notify("Error: entry or entry.display_name or entry.lib_name is nil: " .. vim.inspect(entry), vim.log.levels.ERROR)
+				vim.notify(
+					"Error: entry or entry.display_name or entry.lib_name is nil: " .. vim.inspect(entry),
+					vim.log.levels.ERROR
+				)
 				return nil
 			end
 		end
 
-		pickerLib
-			.pick(config.opts.picker, {
-				prompt_title = "Available Arduino Libraries",
-				finder = {
-					results = library_names,
-					entry_maker = entry_maker,
-				},
-				sorter = require("telescope.config").values.generic_sorter({}),
-				on_confirm = function(actions, item)
-						if item then
-							local lib_name = item.lib_name -- Use the actual library name
-							local cmd
+		pickerLib.pick(config.opts.picker, {
+			prompt_title = "Available Arduino Libraries",
+			finder = {
+				results = library_names,
+				entry_maker = entry_maker,
+			},
+			sorter = require("telescope.config").values.generic_sorter({}),
+			on_confirm = function(actions, item)
+				if item then
+					local lib_name = item.lib_name -- Use the actual library name
+					local cmd
 
-							if outdated_libs[lib_name] then
-								-- Update the library if an update is available
-								cmd = 'arduino-cli lib install "' .. lib_name .. '" > /dev/null 2>&1'
-								os.execute(cmd)
-								vim.notify("Library '" .. lib_name .. "' updated successfully.", vim.log.levels.INFO)
-              elseif installed_libs[lib_name] then
-                cmd = 'arduino-cli lib uninstall "' .. lib_name .. '" > /dev/null 2>&1'
-                os.execute(cmd)
-                vim.notify("Library '" .. lib_name .. "' uninstalled successfully.", vim.log.levels.INFO)
-							else
-								-- Install the library if it's not installed
-								cmd = 'arduino-cli lib install "' .. lib_name .. '" > /dev/null 2>&1'
-								os.execute(cmd)
-								vim.notify("Library '" .. lib_name .. "' installed successfully.", vim.log.levels.INFO)
-							end
+					if outdated_libs[lib_name] then
+						-- Update the library if an update is available
+						cmd = 'arduino-cli lib install "' .. lib_name .. '" > /dev/null 2>&1'
+						os.execute(cmd)
+						vim.notify("Library '" .. lib_name .. "' updated successfully.", vim.log.levels.INFO)
+					elseif installed_libs[lib_name] then
+						cmd = 'arduino-cli lib uninstall "' .. lib_name .. '" > /dev/null 2>&1'
+						os.execute(cmd)
+						vim.notify("Library '" .. lib_name .. "' uninstalled successfully.", vim.log.levels.INFO)
+					else
+						-- Install the library if it's not installed
+						cmd = 'arduino-cli lib install "' .. lib_name .. '" > /dev/null 2>&1'
+						os.execute(cmd)
+						vim.notify("Library '" .. lib_name .. "' installed successfully.", vim.log.levels.INFO)
+					end
 
-							-- Refresh the picker with updated tick mark and update status
-							actions.close()
-							update_library_picker() -- Reopen picker with updated status
-						end
-					return true
-				end,
-			})
+					-- Refresh the picker with updated tick mark and update status
+					actions.close()
+					update_library_picker() -- Reopen picker with updated status
+				end
+				return true
+			end,
+		})
 	else
 		vim.notify("No libraries found.", vim.log.levels.WARN)
 	end
