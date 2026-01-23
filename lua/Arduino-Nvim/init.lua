@@ -1,9 +1,5 @@
 local M = {}
 
--- Load dependencies
-require("Arduino-Nvim.remap")
-require("Arduino-Nvim.libGetter")
-
 local config = require("Arduino-Nvim.config")
 local picker = require("Arduino-Nvim.picker")
 
@@ -17,9 +13,177 @@ function Trim(s)
 	return s:match("^%s*(.-)%s*$")
 end
 
+local function setupUserCommands()
+	vim.api.nvim_create_user_command("InoSelectBoard", function()
+		M.select_board_gui()
+	end, {})
+	vim.api.nvim_create_user_command("InoSelectPort", function()
+		M.select_port_gui()
+	end, {})
+	vim.api.nvim_create_user_command("InoCheck", function()
+		M.check()
+	end, {})
+	vim.api.nvim_create_user_command("InoGUI", function()
+		M.gui()
+	end, {})
+	vim.api.nvim_create_user_command("InoMonitor", function()
+		M.monitor()
+	end, {})
+	vim.api.nvim_create_user_command("InoSetBaud", function(opts)
+		M.set_baudrate(opts.args)
+	end, { nargs = 1 })
+	vim.api.nvim_create_user_command("InoUpload", function()
+		M.upload()
+	end, {})
+	vim.api.nvim_create_user_command("InoUploadSlow", function()
+		M.baudrate = "1200"
+		vim.notify("Trying upload with 1200 baud rate...", vim.log.levels.INFO)
+		M.upload()
+	end, {})
+	vim.api.nvim_create_user_command("InoUploadReset", function()
+		-- Try manual reset approach for UNO R4 WiFi
+		local buf, win, opts = M.create_floating_cli_monitor()
+		M.append_to_buffer({ "--- Attempting upload with manual reset ---" }, buf, win, opts)
+
+		-- First set port to 1200 baud to trigger reset
+		local reset_cmd = "stty -f " .. M.port .. " 1200"
+		M.append_to_buffer({ "Resetting board..." }, buf, win, opts)
+		os.execute(reset_cmd)
+
+		-- Wait a moment for reset
+		vim.defer_fn(function()
+			-- Try upload after reset
+			local upload_cmd = "arduino-cli upload -p "
+				.. M.port
+				.. " --fqbn "
+				.. M.board
+				.. " "
+				.. vim.fn.expand("%:p:h")
+			M.append_to_buffer({ "Starting upload after reset..." }, buf, win, opts)
+
+			vim.fn.jobstart(upload_cmd, {
+				stdout_buffered = false,
+				on_stdout = function(_, data)
+					if data then
+						M.append_to_buffer(data, buf, win, opts)
+					end
+				end,
+				on_stderr = function(_, data)
+					if data and #data > 0 and data[1]:match("%S") then
+						M.append_to_buffer(
+							vim.tbl_map(function(line)
+								return "Error: " .. line
+							end, data),
+							buf,
+							win,
+							opts
+						)
+					end
+				end,
+				on_exit = function(_, exit_code)
+					if exit_code == 0 then
+						M.append_to_buffer({ "--- Upload with reset Complete ---" }, buf, win, opts)
+					else
+						M.append_to_buffer({ "--- Upload with reset Failed ---" }, buf, win, opts)
+					end
+				end,
+			})
+		end, 2000) -- 2 second delay
+	end, {})
+
+	vim.api.nvim_create_user_command("InoDebugUpload", function()
+		-- Debug upload process for UNO R4 WiFi
+		local buf, win, opts = M.create_floating_cli_monitor()
+		M.append_to_buffer({ "--- Debugging Arduino UNO R4 WiFi Upload ---" }, buf, win, opts)
+
+		-- Check board detection
+		M.append_to_buffer({ "Checking board detection..." }, buf, win, opts)
+		vim.fn.jobstart("arduino-cli board list", {
+			stdout_buffered = false,
+			on_stdout = function(_, data)
+				if data then
+					M.append_to_buffer(data, buf, win, opts)
+				end
+			end,
+			on_exit = function()
+				-- Try to touch the port to see if it's accessible
+				M.append_to_buffer({ "Testing port access..." }, buf, win, opts)
+				vim.fn.jobstart("stty -f " .. M.port, {
+					stdout_buffered = false,
+					on_stdout = function(_, data)
+						if data then
+							M.append_to_buffer(
+								{ "Port " .. M.port .. " accessible: " .. table.concat(data, " ") },
+								buf,
+								win,
+								opts
+							)
+						end
+					end,
+					on_stderr = function(_, data)
+						if data then
+							M.append_to_buffer({ "Port error: " .. table.concat(data, " ") }, buf, win, opts)
+						end
+					end,
+					on_exit = function()
+						-- Try verbose upload
+						M.append_to_buffer({ "Attempting verbose upload..." }, buf, win, opts)
+						local verbose_cmd = "arduino-cli upload -p "
+							.. M.port
+							.. " --fqbn "
+							.. M.board
+							.. " --verbose "
+							.. vim.fn.expand("%:p:h")
+						vim.fn.jobstart(verbose_cmd, {
+							stdout_buffered = false,
+							on_stdout = function(_, data)
+								if data then
+									M.append_to_buffer(data, buf, win, opts)
+								end
+							end,
+							on_stderr = function(_, data)
+								if data then
+									M.append_to_buffer(data, buf, win, opts)
+								end
+							end,
+						})
+					end,
+				})
+			end,
+		})
+	end, {})
+
+	vim.api.nvim_create_user_command("InoStatus", function()
+		M.status()
+	end, {})
+	vim.api.nvim_create_user_command("InoList", function()
+		M.InoList()
+	end, {})
+end
+
 ---@param opts Arduino-Nvim.opts
 function M.setup(opts)
+	if vim.fn.executable("arduino-cli") == 0 then
+		vim.notify("arduino-cli not found", vim.log.levels.ERROR, {
+			title = "Arduino-Nvim",
+		})
+		return false
+	end
+
+	-- Load dependencies
+	require("Arduino-Nvim.remap")
+	require("Arduino-Nvim.libGetter")
+
 	config.setup(opts)
+	setupUserCommands()
+
+	vim.api.nvim_create_autocmd("FileType", {
+		once = true,
+		pattern = "arduino",
+		callback = function(_)
+			M.load_or_create_config()
+		end,
+	})
 end
 
 function M.status()
@@ -74,7 +238,6 @@ function M.load_or_create_config()
 	end
 end
 
-M.load_or_create_config()
 -- Utility function to strip ANSI escape codes
 local function strip_ansi_codes(line)
 	return line:gsub("\27%[[0-9;]*m", "")
@@ -581,146 +744,5 @@ function M.monitor()
 	vim.api.nvim_buf_set_keymap(buf, "t", "<Esc>", "<C-\\><C-n>:bd!<CR>", { noremap = true, silent = true })
 	vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", ":bd!<CR>", { noremap = true, silent = true })
 end
-
-vim.api.nvim_create_user_command("InoSelectBoard", function()
-	M.select_board_gui()
-end, {})
-vim.api.nvim_create_user_command("InoSelectPort", function()
-	M.select_port_gui()
-end, {})
-vim.api.nvim_create_user_command("InoCheck", function()
-	M.check()
-end, {})
-vim.api.nvim_create_user_command("InoGUI", function()
-	M.gui()
-end, {})
-vim.api.nvim_create_user_command("InoMonitor", function()
-	M.monitor()
-end, {})
-vim.api.nvim_create_user_command("InoSetBaud", function(opts)
-	M.set_baudrate(opts.args)
-end, { nargs = 1 })
-vim.api.nvim_create_user_command("InoUpload", function()
-	M.upload()
-end, {})
-vim.api.nvim_create_user_command("InoUploadSlow", function()
-	M.baudrate = "1200"
-	vim.notify("Trying upload with 1200 baud rate...", vim.log.levels.INFO)
-	M.upload()
-end, {})
-vim.api.nvim_create_user_command("InoUploadReset", function()
-	-- Try manual reset approach for UNO R4 WiFi
-	local buf, win, opts = M.create_floating_cli_monitor()
-	M.append_to_buffer({ "--- Attempting upload with manual reset ---" }, buf, win, opts)
-
-	-- First set port to 1200 baud to trigger reset
-	local reset_cmd = "stty -f " .. M.port .. " 1200"
-	M.append_to_buffer({ "Resetting board..." }, buf, win, opts)
-	os.execute(reset_cmd)
-
-	-- Wait a moment for reset
-	vim.defer_fn(function()
-		-- Try upload after reset
-		local upload_cmd = "arduino-cli upload -p " .. M.port .. " --fqbn " .. M.board .. " " .. vim.fn.expand("%:p:h")
-		M.append_to_buffer({ "Starting upload after reset..." }, buf, win, opts)
-
-		vim.fn.jobstart(upload_cmd, {
-			stdout_buffered = false,
-			on_stdout = function(_, data)
-				if data then
-					M.append_to_buffer(data, buf, win, opts)
-				end
-			end,
-			on_stderr = function(_, data)
-				if data and #data > 0 and data[1]:match("%S") then
-					M.append_to_buffer(
-						vim.tbl_map(function(line)
-							return "Error: " .. line
-						end, data),
-						buf,
-						win,
-						opts
-					)
-				end
-			end,
-			on_exit = function(_, exit_code)
-				if exit_code == 0 then
-					M.append_to_buffer({ "--- Upload with reset Complete ---" }, buf, win, opts)
-				else
-					M.append_to_buffer({ "--- Upload with reset Failed ---" }, buf, win, opts)
-				end
-			end,
-		})
-	end, 2000) -- 2 second delay
-end, {})
-
-vim.api.nvim_create_user_command("InoDebugUpload", function()
-	-- Debug upload process for UNO R4 WiFi
-	local buf, win, opts = M.create_floating_cli_monitor()
-	M.append_to_buffer({ "--- Debugging Arduino UNO R4 WiFi Upload ---" }, buf, win, opts)
-
-	-- Check board detection
-	M.append_to_buffer({ "Checking board detection..." }, buf, win, opts)
-	vim.fn.jobstart("arduino-cli board list", {
-		stdout_buffered = false,
-		on_stdout = function(_, data)
-			if data then
-				M.append_to_buffer(data, buf, win, opts)
-			end
-		end,
-		on_exit = function()
-			-- Try to touch the port to see if it's accessible
-			M.append_to_buffer({ "Testing port access..." }, buf, win, opts)
-			vim.fn.jobstart("stty -f " .. M.port, {
-				stdout_buffered = false,
-				on_stdout = function(_, data)
-					if data then
-						M.append_to_buffer(
-							{ "Port " .. M.port .. " accessible: " .. table.concat(data, " ") },
-							buf,
-							win,
-							opts
-						)
-					end
-				end,
-				on_stderr = function(_, data)
-					if data then
-						M.append_to_buffer({ "Port error: " .. table.concat(data, " ") }, buf, win, opts)
-					end
-				end,
-				on_exit = function()
-					-- Try verbose upload
-					M.append_to_buffer({ "Attempting verbose upload..." }, buf, win, opts)
-					local verbose_cmd = "arduino-cli upload -p "
-						.. M.port
-						.. " --fqbn "
-						.. M.board
-						.. " --verbose "
-						.. vim.fn.expand("%:p:h")
-					vim.fn.jobstart(verbose_cmd, {
-						stdout_buffered = false,
-						on_stdout = function(_, data)
-							if data then
-								M.append_to_buffer(data, buf, win, opts)
-							end
-						end,
-						on_stderr = function(_, data)
-							if data then
-								M.append_to_buffer(data, buf, win, opts)
-							end
-						end,
-					})
-				end,
-			})
-		end,
-	})
-end, {})
-
-vim.api.nvim_create_user_command("InoStatus", function()
-	M.status()
-end, {})
-vim.api.nvim_create_user_command("InoList", function()
-	M.InoList()
-end, {})
 
 return M
