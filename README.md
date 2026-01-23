@@ -10,7 +10,7 @@ development experience for Arduino projects.
 - **Code upload to Arduino boards** with reset support for UNO R4 WiFi
 - **Serial monitor** with configuration display and clean interface
 - **Board and port management** with GUI selection
-- **Advanced library management** with Telescope integration
+- **Advanced library management** with Telescope / Snacks integration
   - Visual indicators for installed libraries (✅)
   - Update detection and management (🔄)
   - Cached library data for faster loading
@@ -24,7 +24,8 @@ development experience for Arduino projects.
 - [arduino-cli][acli] (latest stable version)
 - [arduino-language-server][als]
 - [clangd][clangd] (latest stable version)
-- [telescope.nvim][telescope]
+- [telescope.nvim][telescope] (optional)
+- [snacks.nvim][snacks] (optional)
 - [nvim-lspconfig][nvim-lspconfig]
 
 ## 🚀 Installation (LazyVim)
@@ -35,18 +36,12 @@ Add this to your `lua/plugins/arduino.lua`:
 return {
   "yuukiflow/Arduino-Nvim",
   dependencies = {
-    "nvim-telescope/telescope.nvim",
+    "nvim-telescope/telescope.nvim", -- or snacks picker
     "neovim/nvim-lspconfig",
   },
-  config = function()
-    -- Load Arduino plugin for .ino files
-    vim.api.nvim_create_autocmd("FileType", {
-      pattern = "arduino",
-      callback = function()
-        require("Arduino-Nvim")
-      end,
-    })
-  end,
+  opts = {
+    picker = "telescope" -- can be one of "telescope" | "snacks"
+  }
 }
 ```
 
@@ -58,17 +53,12 @@ If you're developing locally:
 return {
   dir = vim.fn.stdpath("config") .. "/lua/Arduino-Nvim",
   dependencies = {
-    "nvim-telescope/telescope.nvim",
+    "nvim-telescope/telescope.nvim", -- or snacks picker
     "neovim/nvim-lspconfig",
   },
-  config = function()
-    vim.api.nvim_create_autocmd("FileType", {
-      pattern = "arduino",
-      callback = function()
-        require("Arduino-Nvim")
-      end,
-    })
-  end,
+  opts = {
+    picker = "telescope" -- can be one of "telescope" | "snacks"
+  }
 }
 ```
 
@@ -76,17 +66,17 @@ return {
 
 All commands are prefixed with `<Leader>a` followed by a single letter:
 
-| Keymap | Command | Description |
-|--------|---------|-------------|
-| `<Leader>ac` | `:InoCheck` | Compile and verify current sketch |
-| `<Leader>au` | `:InoUpload` | Upload sketch to board |
-| `<Leader>ar` | `:InoUploadReset` | Upload with manual reset (for UNO R4 WiFi) |
-| `<Leader>am` | `:InoMonitor` | Open serial monitor with configuration display |
-| `<Leader>as` | `:InoStatus` | Display current board, port, and FQBN status |
-| `<Leader>al` | `:InoLib` | Open library manager (Telescope interface) |
-| `<Leader>ag` | `:InoGUI` | Open GUI for setting board and port |
-| `<Leader>ap` | `:InoSelectPort` | Select Arduino port from available ports |
-| `<Leader>ab` | `:InoSelectBoard` | Select Arduino board from available boards |
+| Keymap       | Command           | Description                                         |
+| ------------ | ----------------- | --------------------------------------------------- |
+| `<Leader>ac` | `:InoCheck`       | Compile and verify current sketch                   |
+| `<Leader>au` | `:InoUpload`      | Upload sketch to board                              |
+| `<Leader>ar` | `:InoUploadReset` | Upload with manual reset (for UNO R4 WiFi)          |
+| `<Leader>am` | `:InoMonitor`     | Open serial monitor with configuration display      |
+| `<Leader>as` | `:InoStatus`      | Display current board, port, and FQBN status        |
+| `<Leader>al` | `:InoLib`         | Open library manager (Telescope / Snacks interface) |
+| `<Leader>ag` | `:InoGUI`         | Open GUI for setting board and port                 |
+| `<Leader>ap` | `:InoSelectPort`  | Select Arduino port from available ports            |
+| `<Leader>ab` | `:InoSelectBoard` | Select Arduino board from available boards          |
 
 ## 🔧 Additional Commands
 
@@ -136,7 +126,7 @@ For Arduino UNO R4 WiFi upload issues:
 
 ### Library Manager
 
-The library manager provides a Telescope interface with:
+The library manager provides a Telescope / Snacks interface with:
 
 - ✅ Visual indicators for installed libraries
 - 🔄 Update detection for outdated libraries  
@@ -203,4 +193,5 @@ MIT License - Do whatever you want with the code. No attribution required.
 [als]: https://github.com/arduino/arduino-language-server
 [clangd]: https://clangd.llvm.org/
 [telescope]: https://github.com/nvim-telescope/telescope.nvim
+[snacks]: https://github.com/folke/snacks.nvim
 [nvim-lspconfig]: https://github.com/neovim/nvim-lspconfig
