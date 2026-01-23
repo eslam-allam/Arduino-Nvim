@@ -40,6 +40,20 @@ local function tosnacks(opts)
 		end, items)
 	end
 
+	---@type table<string, table>
+	local mappings = {}
+
+	---@param mode "i" | "n"
+	---@param keybind string
+	---@param callback fun()|string
+	local function mappingsGenerator(mode, keybind, callback)
+		mappings[keybind] = { callback, mode = mode }
+	end
+
+	if opts.attach_mappings then
+		opts.attach_mappings(0, mappingsGenerator)
+	end
+
 	---@type snacks.picker.Config
 	local transformed = {
 		title = opts.prompt_title,
@@ -49,6 +63,11 @@ local function tosnacks(opts)
 				{ item.display ~= nil and item.display or item.text, "SnacksNormal" },
 			}
 		end,
+		win = {
+			input = {
+				keys = mappings,
+			},
+		},
 		matcher = {
 			alt = true,
 		},
@@ -69,7 +88,6 @@ local function tosnacks(opts)
 				}, item)
 			)
 		end,
-		-- TODO: Attach mappings
 	}
 
 	return transformed
