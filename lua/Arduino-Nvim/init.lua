@@ -376,7 +376,7 @@ function M.select_board_gui(callback)
 				}
 			end,
 		},
-		sorter = require("telescope.config").values.generic_sorter({}),
+		sorter = "generic",
 		on_confirm = function(actions, item)
 			if item then
 				M.set_board(item.value) -- Use the selected FQBN
@@ -422,7 +422,7 @@ function M.select_port_gui()
 	picker.pick(config.opts.picker, {
 		prompt_title = "Select Arduino Port",
 		finder = { results = ports },
-		sorter = require("telescope.config").values.generic_sorter({}),
+		sorter = "generic",
 		on_confirm = function(actions, item)
 			if item then
 				M.set_com(item.text)

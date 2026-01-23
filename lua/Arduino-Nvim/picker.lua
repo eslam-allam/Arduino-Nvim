@@ -1,5 +1,7 @@
 local M = {}
 
+---@alias Arduino-Nvim.Picker.opts.Sorter "generic" | "default"
+
 ---@class Arduino-Nvim.Picker.Finder.EntryMaker.Result
 ---@field value string
 ---@field display string
@@ -15,7 +17,7 @@ local M = {}
 ---@class Arduino-Nvim.Picker.opts
 ---@field prompt_title string
 ---@field finder Arduino-Nvim.Picker.Finder
----@field sorter fun(self, prompt: string, line: string, entry: Arduino-Nvim.Picker.Finder.EntryMaker.Result): number
+---@field sorter? Arduino-Nvim.Picker.opts.Sorter
 ---@field attach_mappings? fun(prompt_bufnr: number, map: function): boolean
 ---@field on_confirm? fun(actions: Arduino-Nvim.Picker.Actions, item: Arduino-Nvim.Picker.Finder.EntryMaker.Result)
 
@@ -101,6 +103,13 @@ local function totelescope(opts)
 		end
 		return true
 	end
+
+	if transformed.sorter == "generic" then
+		transformed.sorter = require("telescope.config").values.generic_sorter({})
+	else
+		transformed.sorter = nil
+	end
+
 	return transformed
 end
 

@@ -197,7 +197,7 @@ function M.library_manager()
 				results = library_names,
 				entry_maker = entry_maker,
 			},
-			sorter = require("telescope.config").values.generic_sorter({}),
+			sorter = "generic",
 			on_confirm = function(actions, item)
 				if item then
 					local lib_name = item.lib_name -- Use the actual library name
