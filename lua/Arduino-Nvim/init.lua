@@ -170,6 +170,8 @@ function M.setup(opts)
 		return false
 	end
 
+  require("Arduino-Nvim.lsp").setup()
+
 	-- Load dependencies
 	require("Arduino-Nvim.remap")
 	require("Arduino-Nvim.libGetter")
